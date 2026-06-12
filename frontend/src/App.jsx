@@ -11,10 +11,13 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedSubtitle, setDisplayedSubtitle] = useState("");
   
+  // Mode Selection State (null, 'normal', or 'interview')
+  const [activeMode, setActiveMode] = useState(null);
+  
   const typingTimerRef = useRef(null);
   const fadeTimerRef = useRef(null);
   
-  // Naye refs continuous speech track karne ke liye
+  // Refs continuous speech tracking
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
 
@@ -27,7 +30,7 @@ function App() {
       .trim();
   };
 
-  // Movie-Style Typing Effect with Auto Fade-out
+  // Movie-Style Typing Effect
   const triggerCinematicSubtitle = (text) => {
     if (typingTimerRef.current) clearInterval(typingTimerRef.current);
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
@@ -77,17 +80,17 @@ function App() {
     synth.speak(utterance);
   };
 
-  // API Call
+  // API Call with Mode Parameter
   const handleSendMessage = async (text) => {
     if (!text) return;
     setLoading(true);
 
     try {
-const response = await axios.post('/api/chat', {
-    message: text,
-    history: appHistory
-});
-
+      const response = await axios.post('http://localhost:5000/api/chat', {
+        message: text,
+        history: appHistory,
+        mode: activeMode 
+      });
       const rawReply = response.data.reply || "I am analyzing your structural sentence context.";
       const perfectText = cleanAIText(rawReply);
 
@@ -109,12 +112,17 @@ const response = await axios.post('/api/chat', {
     }
   };
 
-  // 🔥 THE NEW MANUAL TOGGLE LOGIC 🔥
+  // Mode Selection Helper
+  const selectModeAndStart = (mode) => {
+    appHistory = []; 
+    setActiveMode(mode);
+  };
+
+  // Toggle Continuous Speech Recording Loop
   const toggleListening = () => {
-    if (loading) return; // Don't interrupt if AI is thinking
+    if (loading) return; 
 
     if (isListening) {
-      // 1. STOP LISTENING AND SEND
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -127,10 +135,9 @@ const response = await axios.post('/api/chat', {
         setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
       }
     } else {
-      // 2. START CONTINUOUS LISTENING
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-      finalTranscriptRef.current = ""; // Reset old text
+      finalTranscriptRef.current = ""; 
       setDisplayedSubtitle(""); 
 
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -141,20 +148,15 @@ const response = await axios.post('/api/chat', {
 
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-US';
-      
-      // Ye dono true hona zaroori hai tabhi pura sentence sunega bina ruke
       recognition.continuous = true; 
       recognition.interimResults = true;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
+      recognition.onstart = () => setIsListening(true);
       
       recognition.onresult = (event) => {
         let interim = "";
         let final = "";
         
-        // Loop through results to separate final and interim words
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             final += event.results[i][0].transcript + " ";
@@ -164,7 +166,6 @@ const response = await axios.post('/api/chat', {
         }
         
         finalTranscriptRef.current += final;
-        // Live screen feedback to the user!
         setDisplayedSubtitle(finalTranscriptRef.current + interim);
       };
 
@@ -188,14 +189,58 @@ const response = await axios.post('/api/chat', {
     };
   }, []);
 
+  // ==========================================
+  // UI 1: MODE SELECTION SCREEN
+  // ==========================================
+  if (!activeMode) {
+    return (
+      <div className="selection-container">
+        <div className="hero-text-block">
+          <h1 className="selection-title">AI English Coach</h1>
+          <p className="selection-subtitle">Select your specialized training environment to begin</p>
+        </div>
+        
+        <div className="cards-wrapper">
+          <div className="mode-card" onClick={() => selectModeAndStart('normal')}>
+            <div className="mode-icon-holder">
+              <span className="emoji-layer">☕</span>
+              <div className="icon-glow-ring"></div>
+            </div>
+            <h3 className="mode-name">Casual Talk</h3>
+            <p className="mode-desc">Immersive dialogue structure with direct conversational correction and syntax refinement.</p>
+          </div>
+          
+          <div className="mode-card" onClick={() => selectModeAndStart('interview')}>
+            <div className="mode-icon-holder">
+              <span className="emoji-layer">💼</span>
+              <div className="icon-glow-ring"></div>
+            </div>
+            <h3 className="mode-name">Mock Interview</h3>
+            <p className="mode-desc">Comprehensive standard HR assessment pipelines blended with intense grammar checking modules.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // UI 2: CINEMATIC ACTIVE CHAT SCREEN
+  // ==========================================
   return (
     <div className="immersive-container">
       
       <div className="system-overlay-bar">
         <div className="pulse-beacon">
           <div className="core-dot"></div>
-          <span>AI Voice Coach Active</span>
+          <span>{activeMode === 'interview' ? 'Interview Mode Active' : 'Casual Talk Active'}</span>
         </div>
+        
+        <button 
+          className="end-session-btn"
+          onClick={() => { window.speechSynthesis.cancel(); setActiveMode(null); }}
+        >
+          End Session
+        </button>
       </div>
 
       <div className="immersive-stage">
@@ -209,7 +254,7 @@ const response = await axios.post('/api/chat', {
 
           <div 
             className={`master-agent-sphere floating-loop ${isListening ? 'listening-state' : ''} ${loading ? 'thinking-state' : ''}`}
-            onClick={toggleListening} // Tap logic connected here
+            onClick={toggleListening}
           >
             {isListening && <div className="sonar-expansion-ring"></div>}
             
@@ -221,7 +266,7 @@ const response = await axios.post('/api/chat', {
 
             <div className="interaction-badge">
               {isListening ? (
-                <span className="badge-icon system-pulse">🔴</span> // Changed to red dot to show recording
+                <span className="badge-icon system-pulse">🔴</span>
               ) : loading ? (
                 <span className="badge-icon system-spin">🌀</span>
               ) : (
@@ -238,15 +283,14 @@ const response = await axios.post('/api/chat', {
 
         </div>
 
-        {/* Dynamic HUD Guidance */}
         <p className="hud-guidance-text">
           {isListening 
-            ? "Tap agent again to STOP & SEND" 
+            ? "Listening intelligently... Tap agent to finalize transmission" 
             : loading 
-              ? "Formulating perfect grammar..." 
+              ? "Formulating flawless syntactic response..." 
               : isSpeaking 
-                ? "Speaking clearly..." 
-                : "Tap the Coach to interact"}
+                ? "Articulating structural output..." 
+                : "Tap the Coach avatar to transmit voice data"}
         </p>
       </div>
 

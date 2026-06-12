@@ -1,32 +1,45 @@
 const axios = require('axios');
 
-// 🔥 SUPER STRICT SYSTEM INSTRUCTION
-const systemInstruction = `You are a strict, no-nonsense Spoken English Coach and Technical Interviewer. Your student's name is Aniket.
+// 🔥 PROMPT 1: For Normal Conversation (Strictly Grammar, No Extra Questions)
+const normalInstruction = `You are a direct, no-nonsense Spoken English Coach. Your student's name is Aniket.
+CRITICAL RULES:
+1. You MUST evaluate Aniket's grammar first in every response ("Hi Aniket, your sentence is correct/incorrect...").
+2. After the grammar check, reply naturally to his statement to keep the conversation going (1-2 short sentences).
+3. DO NOT ask interview questions. DO NOT use fluff. Be extremely concise to save tokens.`;
+
+// 🔥 PROMPT 2: For Interview Practice (Grammar + Next Technical Question)
+// 🔥 PROMPT 2: For Interview Practice (Strictly Professional, No Casual Talk)
+const interviewInstruction = `You are a strict Software Engineering Interviewer and English Coach. Your student's name is Aniket.
 
 CRITICAL RULES YOU MUST FOLLOW:
-1. MANDATORY OPENING (GRAMMAR CHECK): You MUST evaluate Aniket's grammar first in every single response. 
-   - If his sentence has mistakes, you must start exactly with: "Hi Aniket, your sentence is incorrect. It should be: [Corrected Sentence]."
-   - If his sentence is grammatically perfect, you must start exactly with: "Hi Aniket, your sentence is correct."
-
-2. DYNAMIC MODE SWITCHING:
-   - NORMAL MODE (Default): If Aniket is just talking normally, STOP after providing the grammar check. DO NOT ask any follow-up questions. DO NOT try to keep the conversation going. DO NOT add any extra conversational text. Just provide the grammar feedback and nothing else.
-   - INTERVIEW MODE: If Aniket explicitly asks for a mock interview (e.g., "Take my interview", "Interview me") OR is actively answering a previous interview question you asked, act as a Software Engineering Interviewer. After the grammar check, ask EXACTLY ONE technical or HR question.
-
-3. NO FLUFF: NEVER use filler greetings like "How can I help you?", "Sure", or "Let's begin". Jump straight to the point. Keep responses extremely concise.`;
+1. STRICT INTERVIEW BOUNDARY: If Aniket tries to make casual conversation (e.g., "how are you?", "tell me a joke", or general chatting) that is not an interview answer or asking to start the interview, you MUST refuse. Reply with exactly: "I am an Interview AI Coach. We are here for interview practice, not casual talk." Then immediately ask him an interview question.
+2. MANDATORY OPENING (GRAMMAR): If he is answering a question, you MUST evaluate his grammar first. Start exactly with: "Hi Aniket, your sentence is correct." OR "Hi Aniket, your sentence is incorrect. It should be: [Correction]."
+3. ANSWER EVALUATION: After the grammar check, give 1 sentence of brief feedback on the quality/accuracy of his previous interview answer.
+4. ASK ONE QUESTION: Then, ask EXACTLY ONE new technical or HR interview question.
+5. NO FLUFF: Keep responses strictly under 4-5 sentences total to save tokens.`;
 
 const processChat = async (req, res) => {
     try {
-        const { message, history } = req.body;
-        const apiKey = process.env.GEMINI_API_KEY;
+        // Frontend se 'mode' aayega ('normal' ya 'interview')
+        const { message, history, mode } = req.body; 
 
-        if (!apiKey) {
-            return res.status(500).json({ error: "GEMINI_API_KEY is missing in .env file" });
+        // Default to Normal Mode
+        let apiKey = process.env.GEMINI_API_KEY_NORMAL;
+        let systemInstruction = normalInstruction;
+
+        // Switch to Interview Mode if requested
+        if (mode === 'interview') {
+            apiKey = process.env.GEMINI_API_KEY_INTERVIEW;
+            systemInstruction = interviewInstruction;
         }
 
-        // SLIDING WINDOW LOGIC (Token Optimization)
-        const MAX_HISTORY_LENGTH = 4; // Keep only last 2 exchanges to save tokens
+        if (!apiKey) {
+            return res.status(500).json({ error: `API Key missing for ${mode} mode` });
+        }
+
+        // Token Optimization
+        const MAX_HISTORY_LENGTH = 4; 
         let optimizedHistory = history || [];
-        
         if (optimizedHistory.length > MAX_HISTORY_LENGTH) {
             optimizedHistory = optimizedHistory.slice(optimizedHistory.length - MAX_HISTORY_LENGTH);
         }
@@ -37,17 +50,14 @@ const processChat = async (req, res) => {
         ];
 
         const payload = {
-            system_instruction: {
-                parts: [{ text: systemInstruction }]
-            },
+            system_instruction: { parts: [{ text: systemInstruction }] },
             contents: contents,
             generationConfig: {
-                temperature: 0.5, // Reduced temperature for more direct, less creative/fluffy answers
-                maxOutputTokens: 150, // 🔥 STRICT LIMIT: Forces the AI to keep answers short
+                temperature: 0.5, 
+                maxOutputTokens: 150, 
             }
         };
 
-        // Note: Using the model that is working for you
         const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
 
         const response = await axios.post(GEMINI_API_URL, payload, {
@@ -56,22 +66,18 @@ const processChat = async (req, res) => {
 
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
             const responseText = response.data.candidates[0].content.parts[0].text;
-
             const newHistory = [
                 ...optimizedHistory,
                 { role: "user", parts: [{ text: message }] },
                 { role: "model", parts: [{ text: responseText }] }
             ];
-
             return res.json({ reply: responseText, updatedHistory: newHistory });
         } else {
             throw new Error("Invalid AI response structure");
         }
-
     } catch (error) {
-        const errorDetail = error.response?.data || error.message;
-        console.error("Direct Axios Gemini Error:", JSON.stringify(errorDetail, null, 2));
-        res.status(500).json({ error: "API connection failed. Check terminal for details." });
+        console.error("API Error:", error.message);
+        res.status(500).json({ error: "API connection failed." });
     }
 };
 

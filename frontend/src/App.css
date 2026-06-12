@@ -1,50 +1,174 @@
 /* ==========================================================================
-   Design System Custom Tokens & Clean Stage Configurations
+   Premium Design Variables & Base Reset (Vercel/Linear Inspired)
    ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --space-dark: #070a13;
+  --space-dark: #000000;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #1a1a2e 0%, var(--space-dark) 70%);
+  --panel-bg: rgba(255, 255, 255, 0.03);
+  --panel-hover: rgba(255, 255, 255, 0.06);
   --neon-indigo: #6366f1;
   --neon-cyan: #06b6d4;
   --alert-red: #f43f5e;
   --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.2);
   --text-pure: #ffffff;
-  --text-dimmed: #64748b;
+  --text-muted: #a1a1aa;
+  --text-dimmed: #71717a;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: var(--space-dark);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--space-dark);
   color: var(--text-pure);
-  overflow: hidden; /* Lock viewport context seamlessly */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
   height: 100vh;
   width: 100vw;
 }
 
-/* Container Workspace Definition */
+/* ==========================================================================
+   UI 1: Mode Selection Screen (Premium Layout)
+   ========================================================================== */
+.selection-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  background: var(--bg-gradient);
+  padding: 40px 24px;
+}
+
+.hero-text-block {
+  text-align: center;
+  max-width: 600px;
+  margin-bottom: 64px;
+  animation: fadeDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.selection-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 16px;
+}
+
+.selection-subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* Updated Grid for Cards */
+.cards-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 800px;
+  animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Sleek Glassmorphism Cards */
+.mode-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--glass-border-hover);
+  background: var(--panel-hover);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Premium Icon Container */
+.mode-icon-holder {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transition: transform 0.4s ease;
+}
+
+.mode-card:hover .mode-icon-holder {
+  transform: scale(1.05) rotate(-5deg);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.emoji-layer {
+  font-size: 1.6rem;
+}
+
+.mode-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+  color: var(--text-pure);
+}
+
+.mode-desc {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ==========================================================================
+   UI 2: Cinematic Active Chat Components
+   ========================================================================== */
 .immersive-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
   position: relative;
-  background: radial-gradient(circle at 50% 50%, #111827 0%, var(--space-dark) 100%);
+  background: var(--bg-gradient);
 }
 
-/* System Minimal Status Header Overlay */
 .system-overlay-bar {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 24px;
+  padding: 24px 32px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   z-index: 50;
 }
@@ -52,17 +176,18 @@ body {
 .pulse-beacon {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.03);
-  padding: 8px 18px;
+  padding: 8px 16px;
   border-radius: 30px;
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #a1a1aa;
+  color: var(--text-muted);
 }
 
 .core-dot {
@@ -70,19 +195,35 @@ body {
   height: 8px;
   background-color: #10b981;
   border-radius: 50%;
-  box-shadow: 0 0 10px #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
 }
 
-/* ==========================================================================
-   Central Floating Stage Structure
-   ========================================================================== */
+.end-session-btn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.end-session-btn:hover {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: var(--alert-red);
+  color: var(--alert-red);
+}
+
+/* Central Stage */
 .immersive-stage {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 40px 24px;
   z-index: 20;
 }
 
@@ -90,26 +231,24 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 40px;
+  gap: 48px;
   width: 100%;
-  max-width: 700px;
 }
 
-/* Upgraded Main Master Circular Agent Grid Frame */
 .master-agent-sphere {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   z-index: 30;
 }
 
 .master-agent-sphere:hover {
-  transform: scale(1.06);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7), 0 0 50px rgba(6, 182, 212, 0.3);
+  transform: scale(1.05);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(99, 102, 241, 0.15);
 }
 
 .agent-graphics {
@@ -117,34 +256,33 @@ body {
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid var(--neon-indigo);
+  border: 2px solid var(--glass-border-hover);
   background-color: #0f172a;
-  padding: 12px;
+  padding: 8px;
   transition: border-color 0.4s ease;
 }
 
 .master-agent-sphere:hover .agent-graphics {
-  border-color: var(--neon-cyan);
+  border-color: var(--neon-indigo);
 }
 
-/* Central Overlay Context Action Badge */
 .interaction-badge {
   position: absolute;
   bottom: 4px;
   right: 4px;
-  width: 50px;
-  height: 50px;
-  background-color: #1e293b;
+  width: 48px;
+  height: 48px;
+  background-color: #18181b;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--neon-indigo);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  font-size: 1.4rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  font-size: 1.2rem;
 }
 
-/* State Variable Layout Overrides */
+/* State Modifiers */
 .listening-state .agent-graphics {
   border-color: var(--alert-red) !important;
 }
@@ -152,111 +290,108 @@ body {
   background-color: var(--alert-red);
   border-color: var(--alert-red);
 }
-
 .thinking-state {
   pointer-events: none;
+  opacity: 0.8;
 }
 .thinking-state .agent-graphics {
   border-color: var(--text-dimmed);
 }
 
-/* Subtext Layout */
 .hud-guidance-text {
-  margin-top: 30px;
+  margin-top: 40px;
   font-size: 0.95rem;
   font-weight: 500;
-  letter-spacing: 0.8px;
-  color: #94a3b8;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  letter-spacing: 0.02em;
+  color: var(--text-dimmed);
+  text-align: center;
 }
 
-/* ==========================================================================
-   Cyber Sync Sound Waves Custom Canvas
-   ========================================================================== */
+/* Sound Waves */
 .cyber-wave {
   display: flex;
   align-items: center;
   gap: 6px;
   height: 80px;
-  width: 70px;
+  width: 60px;
   opacity: 0;
-  transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .left-wave { justify-content: flex-end; }
 .right-wave { justify-content: flex-start; }
-
-.wave-active {
-  opacity: 1;
-}
+.wave-active { opacity: 1; }
 
 .sound-node {
-  width: 5px;
+  width: 4px;
   background: linear-gradient(to top, var(--neon-cyan), #a5f3fc);
   border-radius: 4px;
   height: 8px;
-  transition: height 0.15s ease;
 }
 
-/* Complex Dynamic Audio Render Sequences */
 .wave-active .sound-node {
-  animation: cyberHertz 0.8s ease-in-out infinite alternate;
+  animation: cyberHertz 0.7s ease-in-out infinite alternate;
 }
-.cyber-wave .sound-node:nth-child(1) { animation-delay: 0.1s; height: 15px; }
-.cyber-wave .sound-node:nth-child(2) { animation-delay: 0.4s; height: 35px; }
-.cyber-wave .sound-node:nth-child(3) { animation-delay: 0.2s; height: 55px; }
-.cyber-wave .sound-node:nth-child(4) { animation-delay: 0.6s; height: 25px; }
-.cyber-wave .sound-node:nth-child(5) { animation-delay: 0.3s; height: 12px; }
+.cyber-wave .sound-node:nth-child(1) { animation-delay: 0.1s; height: 16px; }
+.cyber-wave .sound-node:nth-child(2) { animation-delay: 0.3s; height: 38px; }
+.cyber-wave .sound-node:nth-child(3) { animation-delay: 0.2s; height: 60px; }
+.cyber-wave .sound-node:nth-child(4) { animation-delay: 0.5s; height: 28px; }
+.cyber-wave .sound-node:nth-child(5) { animation-delay: 0.4s; height: 14px; }
 
-/* ==========================================================================
-   Movie Subtitle Deck Layout Box
-   ========================================================================== */
+/* Subtitles */
 .cinematic-caption-deck {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   min-height: 140px;
-  padding: 0 24px 60px 24px;
+  padding: 0 24px 48px 24px;
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  pointer-events: none; /* Subtitles dont intercept user interaction points */
+  pointer-events: none;
   z-index: 40;
 }
 
 .movie-subtitle-card {
-  max-width: 750px;
-  background: rgba(0, 0, 0, 0.65);
+  max-width: 700px;
+  background: rgba(0, 0, 0, 0.8);
   padding: 16px 32px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  animation: subtitleEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  animation: subtitleEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .typed-caption {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 500;
   line-height: 1.6;
-  color: #f1f5f9;
+  color: #f8fafc;
   text-align: center;
-  letter-spacing: 0.3px;
-  word-break: break-word;
+  letter-spacing: 0.01em;
 }
 
-/* ==========================================================================
-   Animation Timelines Matrix
-   ========================================================================== */
+/* Animations */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes float-loop {
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 }
 .floating-loop {
-  animation: float-loop 4.5s ease-in-out infinite;
+  animation: float-loop 5s ease-in-out infinite;
 }
 
 @keyframes cyberHertz {
@@ -265,97 +400,37 @@ body {
 }
 
 @keyframes subtitleEnter {
-  from { opacity: 0; transform: translateY(15px) scale(0.98); }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes sonarExpansion {
-  0% { transform: scale(1); opacity: 0.6; }
+  0% { transform: scale(1); opacity: 0.4; }
   100% { transform: scale(1.4); opacity: 0; }
 }
 .sonar-expansion-ring {
   position: absolute;
   inset: -12px;
   border-radius: 50%;
-  border: 3px solid var(--alert-red);
-  animation: sonarExpansion 1.4s linear infinite;
+  border: 2px solid var(--alert-red);
+  animation: sonarExpansion 1.5s linear infinite;
   z-index: -1;
 }
 
-.system-pulse {
-  animation: iconVibe 1.2s ease-in-out infinite alternate;
-}
-@keyframes iconVibe {
-  from { transform: scale(1); }
-  to { transform: scale(1.15); }
-}
-
-.system-spin {
-  animation: spinTransform 1s linear infinite;
-}
-@keyframes spinTransform {
-  100% { transform: rotate(360deg); }
-}
-
 /* ==========================================================================
-   Responsive Adaptation Layer
+   Responsive Adaptations
    ========================================================================== */
 @media (max-width: 768px) {
-  .master-agent-sphere {
-    width: 160px;
-    height: 160px;
-  }
+  .selection-title { font-size: 2.5rem; }
+  .cards-wrapper { grid-template-columns: 1fr; gap: 16px; padding: 0 16px; }
+  .mode-card { padding: 24px; }
   
-  .dynamic-voice-hub {
-    gap: 20px;
-  }
+  .system-overlay-bar { padding: 16px; flex-direction: column; gap: 12px; }
+  .pulse-beacon, .end-session-btn { width: 100%; justify-content: center; text-align: center; }
   
-  .cyber-wave {
-    width: 50px;
-    height: 60px;
-  }
-  
-  .sound-node {
-    width: 4px;
-    gap: 4px;
-  }
-  
-  .typed-caption {
-    font-size: 1.1rem;
-    line-height: 1.5;
-  }
-  
-  .movie-subtitle-card {
-    padding: 12px 22px;
-    max-width: 90%;
-  }
-  
-  .interaction-badge {
-    width: 42px;
-    height: 42px;
-    font-size: 1.15rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .master-agent-sphere {
-    width: 140px;
-    height: 140px;
-  }
-  
-  .dynamic-voice-hub {
-    gap: 12px;
-  }
-  
-  .cyber-wave {
-    width: 35px;
-  }
-  
-  .sound-node {
-    width: 3.5px;
-  }
-  
-  .cinematic-caption-deck {
-    padding-bottom: 40px;
-  }
+  .master-agent-sphere { width: 150px; height: 150px; }
+  .dynamic-voice-hub { gap: 24px; }
+  .cyber-wave { width: 40px; height: 60px; }
+  .movie-subtitle-card { padding: 12px 20px; max-width: 90%; }
+  .typed-caption { font-size: 1.05rem; }
 }
