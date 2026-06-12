@@ -86,11 +86,12 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await axios.post('api/chat', {
+      const response = await axios.post('http://localhost:5000/api/chat', {
         message: text,
         history: appHistory,
         mode: activeMode 
       });
+      
       const rawReply = response.data.reply || "I am analyzing your structural sentence context.";
       const perfectText = cleanAIText(rawReply);
 
