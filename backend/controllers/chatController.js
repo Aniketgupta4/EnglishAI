@@ -13,6 +13,7 @@ CRITICAL RULES YOU MUST FOLLOW:
    - INTERVIEW MODE: If Aniket explicitly asks for a mock interview (e.g., "Take my interview", "Interview me") OR is actively answering a previous interview question you asked, act as a Software Engineering Interviewer. After the grammar check, ask EXACTLY ONE technical or HR question.
 
 3. NO FLUFF: NEVER use filler greetings like "How can I help you?", "Sure", or "Let's begin". Jump straight to the point. Keep responses extremely concise.`;
+
 const processChat = async (req, res) => {
     try {
         const { message, history } = req.body;
