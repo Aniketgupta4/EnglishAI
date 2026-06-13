@@ -1,6 +1,5 @@
 const axios = require('axios');
 
-// 🔥 PROMPT 1: For Normal Conversation (Strictly Grammar, No Extra Questions)
 // 🔥 PROMPT 1: ULTRA-CONCISE Casual Talk (Strictly 2 sentences max)
 const normalInstruction = `You are a strict, ultra-concise Spoken English Coach for daily conversation. Your student is Aniket.
 
@@ -21,19 +20,33 @@ CRITICAL RULES YOU MUST FOLLOW:
 4. DYNAMIC QUESTIONING (CRUCIAL): Ask EXACTLY ONE new interview question. You MUST base this next question on the technologies, tools, or concepts Aniket just mentioned in his answer. If he mentions his tech stack, ask a challenging follow-up question diving deeper into that specific technology. NEVER repeat a previous question.
 5. NO FLUFF: Keep responses strictly under 4-5 sentences total to save tokens.`;
 
+
+// 🔥 PROMPT 3: NAYA AI ASSISTANT MODE (No Grammar, Just Answers)
+const assistantInstruction = `You are a highly intelligent and helpful AI assistant. Your user's name is Aniket.
+
+CRITICAL RULES YOU MUST FOLLOW:
+1. Answer the user's questions directly, accurately, and clearly.
+2. STRICTLY DO NOT evaluate or correct grammar, spelling, or pronunciation. 
+3. DO NOT act like an interviewer or an English teacher. Just provide the information or help Aniket is asking for.
+4. Keep your responses concise and natural so they sound good when spoken aloud by a text-to-speech engine.`;
+
+
 const processChat = async (req, res) => {
     try {
-        // Frontend se 'mode' aayega ('normal' ya 'interview')
+        // Frontend se 'mode' aayega ('normal', 'interview', ya 'assistant')
         const { message, history, mode } = req.body; 
 
         // Default to Normal Mode
         let apiKey = process.env.GEMINI_API_KEY_NORMAL;
         let systemInstruction = normalInstruction;
 
-        // Switch to Interview Mode if requested
+        // Switch Logic based on Mode
         if (mode === 'interview') {
             apiKey = process.env.GEMINI_API_KEY_INTERVIEW;
             systemInstruction = interviewInstruction;
+        } else if (mode === 'assistant') {
+            apiKey = process.env.GEMINI_API_KEY_ASSISTANT; // 🔥 3rd API Key
+            systemInstruction = assistantInstruction;
         }
 
         if (!apiKey) {

@@ -11,7 +11,7 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedSubtitle, setDisplayedSubtitle] = useState("");
   
-  // Mode Selection State (null, 'normal', or 'interview')
+  // Mode Selection State (null, 'normal', 'interview', or 'assistant')
   const [activeMode, setActiveMode] = useState(null);
   
   const typingTimerRef = useRef(null);
@@ -46,17 +46,20 @@ function App() {
         index++;
       } else {
         clearInterval(typingTimerRef.current);
+        // Fallback fadeout agar voice end event hook miss ho jaye
         fadeTimerRef.current = setTimeout(() => {
           setDisplayedSubtitle("");
-        }, 4000); 
+        }, 5000); 
       }
-    }, 35); 
+    }, 25); // Slighly faster typing for longer assistant logs
   };
 
   // Text-To-Speech
   const speakResponse = (text) => {
     const synth = window.speechSynthesis;
     synth.cancel();
+
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
 
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
@@ -76,8 +79,23 @@ function App() {
       setIsSpeaking(true);
       triggerCinematicSubtitle(text);
     };
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+
+    // 🔥 FIX: Bolna khatam hote hi text clear hona system level par guaranteed hai
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+      
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      fadeTimerRef.current = setTimeout(() => {
+        setDisplayedSubtitle("");
+      }, 3000); // Speaking khatam hone ke 3 second baad automatic clean
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+      setDisplayedSubtitle("");
+    };
 
     synth.speak(utterance);
   };
@@ -87,9 +105,11 @@ function App() {
     window.speechSynthesis.cancel(); 
     setIsSpeaking(false);
     if (typingTimerRef.current) clearInterval(typingTimerRef.current); 
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setDisplayedSubtitle("");
   };
 
-  // 🔥 SUPER ROBUST END SESSION LOGIC 🔥
+  // SUPER ROBUST END SESSION LOGIC
   const handleEndSession = () => {
     try {
       window.speechSynthesis.cancel();
@@ -97,7 +117,7 @@ function App() {
       
       if (recognitionRef.current) {
         recognitionRef.current.onend = null; 
-        try { recognitionRef.current.stop(); } catch(e){} // Safe stop
+        try { recognitionRef.current.stop(); } catch(e){} 
       }
     } catch (err) {
       console.error("Cleanup error:", err);
@@ -112,7 +132,7 @@ function App() {
     
     setLoading(false);
     appHistory = [];
-    setActiveMode(null); // Back to Home Screen
+    setActiveMode(null); 
   };
 
   // API Call with Mode Parameter & Dynamic URL
@@ -123,7 +143,7 @@ function App() {
     try {
       const API_URL = window.location.hostname === 'localhost' 
         ? 'http://localhost:5000/api/chat'   
-        : '/api/chat';                       
+        : '/api/chat';                     
 
       const response = await axios.post(API_URL, {
         message: text,
@@ -157,7 +177,7 @@ function App() {
     setActiveMode(mode);
   };
 
-  // 🔥 THE BULLETPROOF LISTENING LOGIC WITH MOBILE FIX 🔥
+  // LISTENING LOGIC
   const toggleListening = () => {
     if (loading) return; 
 
@@ -219,6 +239,8 @@ function App() {
           handleSendMessage(fullSentence);
         } else {
           setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
+          if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+          fadeTimerRef.current = setTimeout(() => setDisplayedSubtitle(""), 3000);
         }
         
         finalTranscriptRef.current = ""; 
@@ -264,6 +286,12 @@ function App() {
             <h3 className="mode-name">Mock Interview</h3>
             <p className="mode-desc">Practice technical interviews with live corrections and progressive challenging questions.</p>
           </div>
+
+          <div className="mode-card" onClick={() => selectModeAndStart('assistant')}>
+            <div className="mode-icon">🤖</div>
+            <h3 className="mode-name">AI Assistant</h3>
+            <p className="mode-desc">Ask any question and get smart, direct answers. No grammar checks, just pure knowledge.</p>
+          </div>
         </div>
       </div>
     );
@@ -275,17 +303,20 @@ function App() {
   return (
     <div className="immersive-container">
       
-      {/* 🔥 Z-INDEX FIX: Top bar ko 100 kar diya taaki hamesha upar rahe aur click ho 🔥 */}
       <div className="system-overlay-bar" style={{ justifyContent: 'space-between', width: '100%', zIndex: 100, pointerEvents: 'auto' }}>
         <div className="pulse-beacon">
           <div className="core-dot"></div>
-          <span>{activeMode === 'interview' ? 'Interview Mode Active' : 'Casual Talk Active'}</span>
+          <span>
+            {activeMode === 'interview' ? 'Interview Mode Active' : 
+             activeMode === 'assistant' ? 'AI Assistant Active' : 
+             'Casual Talk Active'}
+          </span>
         </div>
         
         <button 
           className="end-session-btn"
           onClick={handleEndSession}
-          style={{ cursor: 'pointer', zIndex: 110, position: 'relative' }} // Click guarantee
+          style={{ cursor: 'pointer', zIndex: 110, position: 'relative' }}
         >
           End Session
         </button>
@@ -348,7 +379,7 @@ function App() {
               {isListening 
                 ? "Tap agent again to STOP & SEND" 
                 : loading 
-                  ? "Formulating perfect grammar..." 
+                  ? "Formulating response..." 
                   : "Tap the Coach to interact"}
             </p>
           )}
