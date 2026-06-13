@@ -21,7 +21,6 @@ function App() {
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
   
-  // Track karne ke liye ki humne khud stop kiya hai ya browser ne
   const manualStopRef = useRef(false);
 
   // Clean Text Logic
@@ -83,11 +82,37 @@ function App() {
     synth.speak(utterance);
   };
 
-  // 🔥 THE NEW FUNCTION TO FORCE STOP THE BOT'S AUDIO 🔥
+  // Force Stop Bot's Audio
   const stopAI = () => {
-    window.speechSynthesis.cancel(); // Stops audio immediately
+    window.speechSynthesis.cancel(); 
     setIsSpeaking(false);
-    if (typingTimerRef.current) clearInterval(typingTimerRef.current); // Stops typing effect
+    if (typingTimerRef.current) clearInterval(typingTimerRef.current); 
+  };
+
+  // 🔥 SUPER ROBUST END SESSION LOGIC 🔥
+  const handleEndSession = () => {
+    try {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.onend = null; 
+        try { recognitionRef.current.stop(); } catch(e){} // Safe stop
+      }
+    } catch (err) {
+      console.error("Cleanup error:", err);
+    }
+
+    setIsListening(false);
+    
+    if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    setDisplayedSubtitle("");
+    finalTranscriptRef.current = "";
+    
+    setLoading(false);
+    appHistory = [];
+    setActiveMode(null); // Back to Home Screen
   };
 
   // API Call with Mode Parameter & Dynamic URL
@@ -136,19 +161,16 @@ function App() {
   const toggleListening = () => {
     if (loading) return; 
 
-    // Jab hum bolna shuru karein, toh agar bot pehle se bol raha hai toh usko chup kara do
     if (isSpeaking) {
       stopAI();
     }
 
     if (isListening) {
-      // User ne khud TAP karke mic stop kiya
       manualStopRef.current = true;
       if (recognitionRef.current) {
-        recognitionRef.current.stop(); // Ye automatically onend trigger karega
+        try { recognitionRef.current.stop(); } catch(e){}
       }
     } else {
-      // Naya speech session start kiya
       manualStopRef.current = false;
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -168,14 +190,18 @@ function App() {
 
       recognition.onstart = () => setIsListening(true);
       
-      // 🔥 THE MOBILE FIX: Direct string overwrite instead of appending
       recognition.onresult = (event) => {
-        let currentText = "";
-        for (let i = 0; i < event.results.length; i++) {
-          currentText += event.results[i][0].transcript;
+        let currentText = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
+          
+        finalTranscriptRef.current = currentText; 
+        
+        if (currentText.length > 100) {
+          setDisplayedSubtitle("... " + currentText.slice(-100));
+        } else {
+          setDisplayedSubtitle(currentText);
         }
-        finalTranscriptRef.current = currentText;
-        setDisplayedSubtitle(currentText);
       };
 
       recognition.onerror = (event) => {
@@ -185,19 +211,17 @@ function App() {
         }
       };
 
-      // FIX: Agar browser silently mic drop kare, ya hum manually karein
       recognition.onend = () => {
         setIsListening(false);
         const fullSentence = finalTranscriptRef.current.trim();
         
-        // Agar thodi si bhi baat record hui hai, usko bhej do
         if (fullSentence !== "") {
           handleSendMessage(fullSentence);
         } else {
           setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
         }
         
-        finalTranscriptRef.current = ""; // Clean up memory for next time
+        finalTranscriptRef.current = ""; 
       };
 
       recognitionRef.current = recognition;
@@ -213,7 +237,9 @@ function App() {
     return () => {
       if (typingTimerRef.current) clearInterval(typingTimerRef.current);
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
-      if (recognitionRef.current) recognitionRef.current.stop();
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch(e){}
+      }
     };
   }, []);
 
@@ -249,7 +275,8 @@ function App() {
   return (
     <div className="immersive-container">
       
-      <div className="system-overlay-bar" style={{ justifyContent: 'space-between', width: '100%' }}>
+      {/* 🔥 Z-INDEX FIX: Top bar ko 100 kar diya taaki hamesha upar rahe aur click ho 🔥 */}
+      <div className="system-overlay-bar" style={{ justifyContent: 'space-between', width: '100%', zIndex: 100, pointerEvents: 'auto' }}>
         <div className="pulse-beacon">
           <div className="core-dot"></div>
           <span>{activeMode === 'interview' ? 'Interview Mode Active' : 'Casual Talk Active'}</span>
@@ -257,13 +284,14 @@ function App() {
         
         <button 
           className="end-session-btn"
-          onClick={() => { window.speechSynthesis.cancel(); setActiveMode(null); }}
+          onClick={handleEndSession}
+          style={{ cursor: 'pointer', zIndex: 110, position: 'relative' }} // Click guarantee
         >
           End Session
         </button>
       </div>
 
-      <div className="immersive-stage">
+      <div className="immersive-stage" style={{ zIndex: 50 }}>
         <div className="dynamic-voice-hub">
           
           <div className={`cyber-wave left-wave ${isSpeaking ? 'wave-active' : ''}`}>
@@ -303,15 +331,14 @@ function App() {
 
         </div>
 
-        {/* 🔥 DYNAMIC HUD CONTROLS 🔥 */}
-        <div style={{ marginTop: '30px', minHeight: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 40 }}>
+        <div style={{ marginTop: '30px', minHeight: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 60 }}>
           {isSpeaking ? (
             <button 
               onClick={stopAI}
               style={{
                 background: 'rgba(244, 63, 94, 0.15)', border: '1px solid #f43f5e', color: '#ffe4e6', 
                 padding: '10px 24px', borderRadius: '30px', fontSize: '1.05rem', fontWeight: '600', 
-                cursor: 'pointer', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '8px'
+                cursor: 'pointer', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 110
               }}
             >
               <span>🔇</span> Stop Bot Reply
@@ -328,9 +355,9 @@ function App() {
         </div>
       </div>
 
-      <div className="cinematic-caption-deck">
+      <div className="cinematic-caption-deck" style={{ pointerEvents: 'none', zIndex: 20 }}>
         {displayedSubtitle && (
-          <div className="movie-subtitle-card">
+          <div className="movie-subtitle-card" style={{ pointerEvents: 'none' }}>
             <p className="typed-caption">{displayedSubtitle}</p>
           </div>
         )}
