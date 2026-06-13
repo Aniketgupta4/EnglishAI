@@ -17,9 +17,12 @@ function App() {
   const typingTimerRef = useRef(null);
   const fadeTimerRef = useRef(null);
   
-  // Refs continuous speech tracking
+  // Refs for continuous speech tracking
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
+  
+  // 🔥 NAYA REF: Track karne ke liye ki humne khud stop kiya hai ya browser ne
+  const manualStopRef = useRef(false);
 
   // Clean Text Logic
   const cleanAIText = (rawText) => {
@@ -80,13 +83,17 @@ function App() {
     synth.speak(utterance);
   };
 
-  // API Call with Mode Parameter
+  // API Call with Mode Parameter & Dynamic URL
   const handleSendMessage = async (text) => {
     if (!text) return;
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/chat', {
+      const API_URL = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000/api/chat'   
+        : '/api/chat';                       
+
+      const response = await axios.post(API_URL, {
         message: text,
         history: appHistory,
         mode: activeMode 
@@ -113,29 +120,24 @@ function App() {
     }
   };
 
-  // Mode Selection Helper
   const selectModeAndStart = (mode) => {
     appHistory = []; 
     setActiveMode(mode);
   };
 
-  // Toggle Continuous Speech Recording Loop
+  // 🔥 THE BULLETPROOF LISTENING LOGIC 🔥
   const toggleListening = () => {
     if (loading) return; 
 
     if (isListening) {
+      // 1. User ne khud TAP karke mic stop kiya
+      manualStopRef.current = true;
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      
-      const fullSentence = finalTranscriptRef.current.trim();
-      if (fullSentence !== "") {
-        handleSendMessage(fullSentence);
-      } else {
-        setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
+        recognitionRef.current.stop(); // Ye automatically onend trigger karega
       }
     } else {
+      // 2. Naya speech session start kiya
+      manualStopRef.current = false;
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       finalTranscriptRef.current = ""; 
@@ -172,13 +174,32 @@ function App() {
 
       recognition.onerror = (event) => {
         console.error("Speech Error:", event.error);
-        if (event.error !== 'no-speech') {
+        if (event.error === 'not-allowed') {
           setIsListening(false);
         }
       };
 
+      // 🔥 FIX: Agar browser silently mic drop kare, ya hum manually karein
+      recognition.onend = () => {
+        setIsListening(false);
+        const fullSentence = finalTranscriptRef.current.trim();
+        
+        // Agar thodi si bhi baat record hui hai, usko bhej do
+        if (fullSentence !== "") {
+          handleSendMessage(fullSentence);
+        } else {
+          setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
+        }
+        
+        finalTranscriptRef.current = ""; // Clean up memory for next time
+      };
+
       recognitionRef.current = recognition;
-      recognition.start();
+      try {
+        recognition.start();
+      } catch (err) {
+        console.error("Mic start failed", err);
+      }
     }
   };
 
@@ -196,28 +217,20 @@ function App() {
   if (!activeMode) {
     return (
       <div className="selection-container">
-        <div className="hero-text-block">
-          <h1 className="selection-title">AI English Coach</h1>
-          <p className="selection-subtitle">Select your specialized training environment to begin</p>
-        </div>
+        <h1 className="selection-title">AI Spoken English</h1>
+        <p className="selection-subtitle">Select your practice mode to begin</p>
         
         <div className="cards-wrapper">
           <div className="mode-card" onClick={() => selectModeAndStart('normal')}>
-            <div className="mode-icon-holder">
-              <span className="emoji-layer">☕</span>
-              <div className="icon-glow-ring"></div>
-            </div>
+            <div className="mode-icon">💬</div>
             <h3 className="mode-name">Casual Talk</h3>
-            <p className="mode-desc">Immersive dialogue structure with direct conversational correction and syntax refinement.</p>
+            <p className="mode-desc">Have normal conversations while your grammar is intelligently corrected in real-time.</p>
           </div>
           
           <div className="mode-card" onClick={() => selectModeAndStart('interview')}>
-            <div className="mode-icon-holder">
-              <span className="emoji-layer">💼</span>
-              <div className="icon-glow-ring"></div>
-            </div>
+            <div className="mode-icon">💼</div>
             <h3 className="mode-name">Mock Interview</h3>
-            <p className="mode-desc">Comprehensive standard HR assessment pipelines blended with intense grammar checking modules.</p>
+            <p className="mode-desc">Practice technical interviews with live corrections and progressive challenging questions.</p>
           </div>
         </div>
       </div>
@@ -230,7 +243,7 @@ function App() {
   return (
     <div className="immersive-container">
       
-      <div className="system-overlay-bar">
+      <div className="system-overlay-bar" style={{ justifyContent: 'space-between', width: '100%' }}>
         <div className="pulse-beacon">
           <div className="core-dot"></div>
           <span>{activeMode === 'interview' ? 'Interview Mode Active' : 'Casual Talk Active'}</span>
@@ -286,12 +299,12 @@ function App() {
 
         <p className="hud-guidance-text">
           {isListening 
-            ? "Listening intelligently... Tap agent to finalize transmission" 
+            ? "Tap agent again to STOP & SEND" 
             : loading 
-              ? "Formulating flawless syntactic response..." 
+              ? "Formulating perfect grammar..." 
               : isSpeaking 
-                ? "Articulating structural output..." 
-                : "Tap the Coach avatar to transmit voice data"}
+                ? "Speaking clearly..." 
+                : "Tap the Coach to interact"}
         </p>
       </div>
 
