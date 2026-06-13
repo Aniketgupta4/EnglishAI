@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// Context management variable
 let appHistory = [];
 
 function App() {
@@ -10,20 +11,29 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedSubtitle, setDisplayedSubtitle] = useState("");
   
+  // Mode Selection State (null, 'normal', or 'interview')
   const [activeMode, setActiveMode] = useState(null);
   
   const typingTimerRef = useRef(null);
   const fadeTimerRef = useRef(null);
   
+  // Refs for continuous speech tracking
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
+  
+  // Track karne ke liye ki humne khud stop kiya hai ya browser ne
   const manualStopRef = useRef(false);
 
+  // Clean Text Logic
   const cleanAIText = (rawText) => {
     if (!rawText) return "";
-    return rawText.replace(/[\*\#\_]/g, "").replace(/\s+/g, " ").trim();
+    return rawText
+      .replace(/[\*\#\_]/g, "") 
+      .replace(/\s+/g, " ")     
+      .trim();
   };
 
+  // Movie-Style Typing Effect
   const triggerCinematicSubtitle = (text) => {
     if (typingTimerRef.current) clearInterval(typingTimerRef.current);
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
@@ -44,6 +54,7 @@ function App() {
     }, 35); 
   };
 
+  // Text-To-Speech
   const speakResponse = (text) => {
     const synth = window.speechSynthesis;
     synth.cancel();
@@ -79,6 +90,7 @@ function App() {
     if (typingTimerRef.current) clearInterval(typingTimerRef.current); // Stops typing effect
   };
 
+  // API Call with Mode Parameter & Dynamic URL
   const handleSendMessage = async (text) => {
     if (!text) return;
     setLoading(true);
@@ -120,6 +132,7 @@ function App() {
     setActiveMode(mode);
   };
 
+  // 🔥 THE BULLETPROOF LISTENING LOGIC WITH MOBILE FIX 🔥
   const toggleListening = () => {
     if (loading) return; 
 
@@ -129,11 +142,13 @@ function App() {
     }
 
     if (isListening) {
+      // User ne khud TAP karke mic stop kiya
       manualStopRef.current = true;
       if (recognitionRef.current) {
-        recognitionRef.current.stop(); 
+        recognitionRef.current.stop(); // Ye automatically onend trigger karega
       }
     } else {
+      // Naya speech session start kiya
       manualStopRef.current = false;
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -153,39 +168,44 @@ function App() {
 
       recognition.onstart = () => setIsListening(true);
       
+      // 🔥 THE MOBILE FIX: Direct string overwrite instead of appending
       recognition.onresult = (event) => {
-        let interim = "";
-        let final = "";
-        
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final += event.results[i][0].transcript + " ";
-          } else {
-            interim += event.results[i][0].transcript;
-          }
+        let currentText = "";
+        for (let i = 0; i < event.results.length; i++) {
+          currentText += event.results[i][0].transcript;
         }
-        
-        finalTranscriptRef.current += final;
-        setDisplayedSubtitle(finalTranscriptRef.current + interim);
+        finalTranscriptRef.current = currentText;
+        setDisplayedSubtitle(currentText);
       };
 
       recognition.onerror = (event) => {
-        if (event.error === 'not-allowed') setIsListening(false);
+        console.error("Speech Error:", event.error);
+        if (event.error === 'not-allowed') {
+          setIsListening(false);
+        }
       };
 
+      // FIX: Agar browser silently mic drop kare, ya hum manually karein
       recognition.onend = () => {
         setIsListening(false);
         const fullSentence = finalTranscriptRef.current.trim();
+        
+        // Agar thodi si bhi baat record hui hai, usko bhej do
         if (fullSentence !== "") {
           handleSendMessage(fullSentence);
         } else {
           setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
         }
-        finalTranscriptRef.current = ""; 
+        
+        finalTranscriptRef.current = ""; // Clean up memory for next time
       };
 
       recognitionRef.current = recognition;
-      try { recognition.start(); } catch (err) {}
+      try {
+        recognition.start();
+      } catch (err) {
+        console.error("Mic start failed", err);
+      }
     }
   };
 
@@ -197,6 +217,9 @@ function App() {
     };
   }, []);
 
+  // ==========================================
+  // UI 1: MODE SELECTION SCREEN
+  // ==========================================
   if (!activeMode) {
     return (
       <div className="selection-container">
@@ -220,6 +243,9 @@ function App() {
     );
   }
 
+  // ==========================================
+  // UI 2: CINEMATIC ACTIVE CHAT SCREEN
+  // ==========================================
   return (
     <div className="immersive-container">
       
@@ -277,7 +303,7 @@ function App() {
 
         </div>
 
-        {/* 🔥 YAHAN HAI TUMHARA NAYA LOGIC 🔥 */}
+        {/* 🔥 DYNAMIC HUD CONTROLS 🔥 */}
         <div style={{ marginTop: '30px', minHeight: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 40 }}>
           {isSpeaking ? (
             <button 
