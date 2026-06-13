@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-// Context management variable
 let appHistory = [];
 
 function App() {
@@ -11,29 +10,20 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedSubtitle, setDisplayedSubtitle] = useState("");
   
-  // Mode Selection State (null, 'normal', or 'interview')
   const [activeMode, setActiveMode] = useState(null);
   
   const typingTimerRef = useRef(null);
   const fadeTimerRef = useRef(null);
   
-  // Refs for continuous speech tracking
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef("");
-  
-  // 🔥 NAYA REF: Track karne ke liye ki humne khud stop kiya hai ya browser ne
   const manualStopRef = useRef(false);
 
-  // Clean Text Logic
   const cleanAIText = (rawText) => {
     if (!rawText) return "";
-    return rawText
-      .replace(/[\*\#\_]/g, "") 
-      .replace(/\s+/g, " ")     
-      .trim();
+    return rawText.replace(/[\*\#\_]/g, "").replace(/\s+/g, " ").trim();
   };
 
-  // Movie-Style Typing Effect
   const triggerCinematicSubtitle = (text) => {
     if (typingTimerRef.current) clearInterval(typingTimerRef.current);
     if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
@@ -54,7 +44,6 @@ function App() {
     }, 35); 
   };
 
-  // Text-To-Speech
   const speakResponse = (text) => {
     const synth = window.speechSynthesis;
     synth.cancel();
@@ -83,7 +72,13 @@ function App() {
     synth.speak(utterance);
   };
 
-  // API Call with Mode Parameter & Dynamic URL
+  // 🔥 THE NEW FUNCTION TO FORCE STOP THE BOT'S AUDIO 🔥
+  const stopAI = () => {
+    window.speechSynthesis.cancel(); // Stops audio immediately
+    setIsSpeaking(false);
+    if (typingTimerRef.current) clearInterval(typingTimerRef.current); // Stops typing effect
+  };
+
   const handleSendMessage = async (text) => {
     if (!text) return;
     setLoading(true);
@@ -125,18 +120,20 @@ function App() {
     setActiveMode(mode);
   };
 
-  // 🔥 THE BULLETPROOF LISTENING LOGIC 🔥
   const toggleListening = () => {
     if (loading) return; 
 
+    // Jab hum bolna shuru karein, toh agar bot pehle se bol raha hai toh usko chup kara do
+    if (isSpeaking) {
+      stopAI();
+    }
+
     if (isListening) {
-      // 1. User ne khud TAP karke mic stop kiya
       manualStopRef.current = true;
       if (recognitionRef.current) {
-        recognitionRef.current.stop(); // Ye automatically onend trigger karega
+        recognitionRef.current.stop(); 
       }
     } else {
-      // 2. Naya speech session start kiya
       manualStopRef.current = false;
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -173,33 +170,22 @@ function App() {
       };
 
       recognition.onerror = (event) => {
-        console.error("Speech Error:", event.error);
-        if (event.error === 'not-allowed') {
-          setIsListening(false);
-        }
+        if (event.error === 'not-allowed') setIsListening(false);
       };
 
-      // 🔥 FIX: Agar browser silently mic drop kare, ya hum manually karein
       recognition.onend = () => {
         setIsListening(false);
         const fullSentence = finalTranscriptRef.current.trim();
-        
-        // Agar thodi si bhi baat record hui hai, usko bhej do
         if (fullSentence !== "") {
           handleSendMessage(fullSentence);
         } else {
           setDisplayedSubtitle("Didn't catch that. Tap the mic to try again.");
         }
-        
-        finalTranscriptRef.current = ""; // Clean up memory for next time
+        finalTranscriptRef.current = ""; 
       };
 
       recognitionRef.current = recognition;
-      try {
-        recognition.start();
-      } catch (err) {
-        console.error("Mic start failed", err);
-      }
+      try { recognition.start(); } catch (err) {}
     }
   };
 
@@ -211,9 +197,6 @@ function App() {
     };
   }, []);
 
-  // ==========================================
-  // UI 1: MODE SELECTION SCREEN
-  // ==========================================
   if (!activeMode) {
     return (
       <div className="selection-container">
@@ -237,9 +220,6 @@ function App() {
     );
   }
 
-  // ==========================================
-  // UI 2: CINEMATIC ACTIVE CHAT SCREEN
-  // ==========================================
   return (
     <div className="immersive-container">
       
@@ -297,15 +277,29 @@ function App() {
 
         </div>
 
-        <p className="hud-guidance-text">
-          {isListening 
-            ? "Tap agent again to STOP & SEND" 
-            : loading 
-              ? "Formulating perfect grammar..." 
-              : isSpeaking 
-                ? "Speaking clearly..." 
-                : "Tap the Coach to interact"}
-        </p>
+        {/* 🔥 YAHAN HAI TUMHARA NAYA LOGIC 🔥 */}
+        <div style={{ marginTop: '30px', minHeight: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 40 }}>
+          {isSpeaking ? (
+            <button 
+              onClick={stopAI}
+              style={{
+                background: 'rgba(244, 63, 94, 0.15)', border: '1px solid #f43f5e', color: '#ffe4e6', 
+                padding: '10px 24px', borderRadius: '30px', fontSize: '1.05rem', fontWeight: '600', 
+                cursor: 'pointer', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: '8px'
+              }}
+            >
+              <span>🔇</span> Stop Bot Reply
+            </button>
+          ) : (
+            <p className="hud-guidance-text" style={{ marginTop: 0 }}>
+              {isListening 
+                ? "Tap agent again to STOP & SEND" 
+                : loading 
+                  ? "Formulating perfect grammar..." 
+                  : "Tap the Coach to interact"}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="cinematic-caption-deck">
