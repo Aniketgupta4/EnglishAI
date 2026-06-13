@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-// 🔥 PROMPT 1: ULTRA-CONCISE Casual Talk (Strictly 2 sentences max)
+// 🔥 PROMPT 1: ULTRA-CONCISE Casual Talk
 const normalInstruction = `You are a strict, ultra-concise Spoken English Coach for daily conversation. Your student is Aniket.
 
 CRITICAL RULES YOU MUST FOLLOW:
@@ -10,7 +10,7 @@ CRITICAL RULES YOU MUST FOLLOW:
 4. ZERO FLUFF: Do not give pronunciation tips unless asked. No greetings, no long paragraphs, no extra friendly fluff.`;
 
 
-// 🔥 PROMPT 2: For Interview Practice (Dynamic, Tech-Stack Aware & Strict)
+// 🔥 PROMPT 2: For Interview Practice
 const interviewInstruction = `You are a strict Software Engineering Interviewer and English Coach. Your student's name is Aniket.
 
 CRITICAL RULES YOU MUST FOLLOW:
@@ -21,7 +21,7 @@ CRITICAL RULES YOU MUST FOLLOW:
 5. NO FLUFF: Keep responses strictly under 4-5 sentences total to save tokens.`;
 
 
-// 🔥 PROMPT 3: NAYA AI ASSISTANT MODE (No Grammar, Just Answers)
+// 🔥 PROMPT 3: NAYA AI ASSISTANT MODE
 const assistantInstruction = `You are a highly intelligent and helpful AI assistant. Your user's name is Aniket.
 
 CRITICAL RULES YOU MUST FOLLOW:
@@ -33,24 +33,24 @@ CRITICAL RULES YOU MUST FOLLOW:
 
 const processChat = async (req, res) => {
     try {
-        // Frontend se 'mode' aayega ('normal', 'interview', ya 'assistant')
         const { message, history, mode } = req.body; 
 
-        // Default to Normal Mode
+        // Default setup
         let apiKey = process.env.GEMINI_API_KEY_NORMAL;
         let systemInstruction = normalInstruction;
 
-        // Switch Logic based on Mode
+        // Mode Switching with Fallback Logic
         if (mode === 'interview') {
-            apiKey = process.env.GEMINI_API_KEY_INTERVIEW;
+            apiKey = process.env.GEMINI_API_KEY_INTERVIEW || process.env.GEMINI_API_KEY_NORMAL;
             systemInstruction = interviewInstruction;
         } else if (mode === 'assistant') {
-            apiKey = process.env.GEMINI_API_KEY_ASSISTANT; // 🔥 3rd API Key
+            // 🔥 YAHAN FIX HAI: Agar Assistant ki key nahi mili toh Normal key use kar lega
+            apiKey = process.env.GEMINI_API_KEY_ASSISTANT || process.env.GEMINI_API_KEY_NORMAL; 
             systemInstruction = assistantInstruction;
         }
 
         if (!apiKey) {
-            return res.status(500).json({ error: `API Key missing for ${mode} mode` });
+            return res.status(500).json({ error: `API Key is missing for the application.` });
         }
 
         // Token Optimization
